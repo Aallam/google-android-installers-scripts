@@ -1,8 +1,8 @@
-import urllib2, sys, argparse
+import urllib3, sys, argparse
 from bs4 import BeautifulSoup
 
 #Metadata
-progversion = "0.1" 
+progversion = "0.1"
 progname="platforms-fetcher"
 progdesc="Parser for repository-11.xml to fetch SDK Platforms list"
 
@@ -14,9 +14,13 @@ args = parser.parse_args()
 #Fetch XML File
 hdr = {"User-Agent": "Mozilla/5.0"}
 print("Fetching "+args.url[0])
-req = urllib2.Request(args.url[0],headers=hdr)
-page = urllib2.urlopen(req)
-soup = BeautifulSoup(page, "xml")
+http = urllib3.PoolManager()
+req = http.request('GET',args.url[0],headers=hdr)
+if req.status != 200:
+   print "HTTP Error: %s" % req.status
+   quit()
+
+soup = BeautifulSoup(req.data, "xml")
 
 #Get platforms list
 platforms_list = soup.findAll('platform') 
