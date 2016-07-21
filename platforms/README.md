@@ -1,7 +1,6 @@
 ## Required:
 * Pyhton
-* Beautiful Soup (`pip install beautifulsoup4`)
-	- apt install python-pip libxml2-dev libxslt1-dev python-lxml
+* Beautiful Soup 4 : `apt install python-bs4`
 	
 ## Run
 * usage: `python platforms.py <url>`
