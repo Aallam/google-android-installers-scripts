@@ -1,7 +1,8 @@
 import re, os.path, glob
 
-def get(soup):
-    pkg_dir = glob.glob(os.path.expanduser("~/Professional/Debian/git/debian_google-android-platform-installers/"))[0]
+def get(soup,pif):
+    pkg_dir = os.path.join(glob.glob(os.path.expanduser(pif))[0], '')
+    print pkg_dir
     # Get platforms list
     platforms_list = soup.findAll('platform') 
     # Show results
@@ -38,12 +39,14 @@ def get(soup):
             print "\033[0;31mNOT EXIST\033[0m "+binary+".install"
 
         # Update <archive>.sha1
-	current_sha1sum = pkg_dir+"for-postinst/"+current_sha1sum
-        if os.path.isfile(current_sha1sum):
-            if current_sha1sum != sha1sum:
+	current_sha1sum_file = pkg_dir+"for-postinst/"+current_sha1sum
+        if os.path.isfile(current_sha1sum_file):
+            f = open(current_sha1sum_file)
+            current_sha1 = re.search(r'\b[0-9a-f]{5,40}\b',f.readlines()[0]).group()
+            if current_sha1sum_file != sha1sum:
                 # Remove outdated sha1 file
                 try:
-		    os.remove(current_sha1sum)
+		    os.remove(current_sha1sum_file)
 	        except OSError:
 		    pass
                 # Generate new sha1 file
@@ -54,6 +57,13 @@ def get(soup):
                     o.write(sha1+"  "+archive)
                     print "\t"+archive+".sha1 generated"
                     o.close()
+            elif current_sha1 != sha1:
+                f.seek(0)
+                i = f.read()
+                o = open(current_sha1sum_file,"w")
+                o.write(re.sub(current_sha1, sha1, i))
+                print "\t\033[0;33mUPDATED\033[0m SHA1 checksum"
+                o.close()
 
         # Update <package>.postinst
         if os.path.isfile(postinst):
