@@ -20,11 +20,11 @@ args = parser.parse_args()
 
 #Fetch XML File
 hdr = {"User-Agent": "Mozilla/5.0"}
-print("Fetching "+args.url[0])
+print(("Fetching "+args.url[0]))
 http = urllib3.PoolManager()
 req = http.request('GET',args.url[0],headers=hdr)
 if req.status != 200:
-   print "HTTP Error: %s" % req.status
+   print("HTTP Error: %s" % req.status)
    quit()
 
 soup = BeautifulSoup(req.data, "xml")
