@@ -1,5 +1,5 @@
 import re, os.path, glob
-import maintscript.platforms_install
+import maintscript.platforms_install, maintscript.platforms_postinst
 
 def get(soup,pif):
     pkg_dir = os.path.join(glob.glob(os.path.expanduser(pif))[0], '')
@@ -71,16 +71,17 @@ def get(soup,pif):
         # Update <package>.postinst
         if os.path.isfile(postinst):
             f = open(postinst)
-            match = re.search(r'\b\d+\b',f.readlines()[5])
-            if int(match.group()) == int(revision):
+            match = re.search("r[0-9]+",f.readlines()[6]).group()[1:]
+            if int(match) == int(revision):
                 print("\033[0;32mOK\033[0m "+binary+".postinst")
             else:
                 print("\033[0;33mOUTDATED\033[0m "+binary+".postinst")
                 f.seek(0)
                 i = f.read()
                 o = open(postinst,"w")
-                o.write(re.sub(match.group(), revision, i))
-                print("\tUpdated from revision "+match.group()+" to "+revision)
+                o.write(re.sub(match, revision, i))
+                print(":... UPDATED from revision "+match.group()+" to "+revision)
                 o.close()
         else:
             print("\033[0;31mNOT EXIST\033[0m "+binary+".postinst")
+            maintscript.platforms_postinst.generate(postinst,api_level,archive)
