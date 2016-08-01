@@ -1,5 +1,5 @@
 import re, os.path, glob
-import maintscript.platforms_install, maintscript.platforms_postinst
+import maintscript.platforms_install, maintscript.platforms_postinst, maintscript.platforms_postrm, maintscript.platforms_config, maintscript.platforms_templates, maintscript.platforms_dirs, maintscript.platforms_control
 
 def get(soup,pif):
     pkg_dir = os.path.join(glob.glob(os.path.expanduser(pif))[0], '')
@@ -8,7 +8,7 @@ def get(soup,pif):
     platforms_list = soup.findAll('platform') 
     # Show results
     for platform in platforms_list:
-        print(("- "+platform.description.string))
+        print(("\033[1;33m- "+platform.description.string+"\033[0m"))
         api_level = platform.find('api-level').string
         version =  platform.version.string
         archive = platform.archives.archive.url.string
@@ -17,10 +17,15 @@ def get(soup,pif):
         binary = "google-android-platform-"+api_level+"-installer"
         install = pkg_dir+"debian/"+binary+".install"
         postinst = pkg_dir+"debian/"+binary+".postinst"
+        postrm = pkg_dir+"debian/"+binary+".postrm"
+        config = pkg_dir+"debian/"+binary+".config"
+        templates = pkg_dir+"debian/"+binary+".templates"
+        dirs = pkg_dir+"debian/"+binary+".dirs"
+        control = pkg_dir+"debian/control"
         sha1sum = pkg_dir+"for-postinst/"+archive+".sha1"
         current_sha1sum = ""
 
-        # Update <package>.install
+        # Generate/Update <package>.install
         if os.path.isfile(install):
             f = open(install)
             current_sha1sum = re.search("(android|platform)-[0-9]*((.[0-9]*)*)?_r[0-9]*(-linux)?.zip.sha1",f.readlines()[1]).group()
@@ -31,14 +36,14 @@ def get(soup,pif):
                 f.seek(0)
                 i = f.read()
                 o = open(install,"w")
-                o.write(re.sub(current_sha1sum, archive, i))
+                o.write(i.replace(current_sha1sum, archive))
                 print("\tUpdated from "+current_sha1sum+" to "+archive)
                 o.close()
         else:
             print("\033[0;31mNOT EXIST\033[0m "+binary+".install")
             maintscript.platforms_install.generate(install,api_level,archive)       
 
-        # Update <archive>.sha1
+        # Generate/Update <archive>.sha1
 	current_sha1sum_file = pkg_dir+"for-postinst/"+current_sha1sum
         generate_sha1 = False
         if current_sha1sum != "":
@@ -60,15 +65,15 @@ def get(soup,pif):
                     generate_sha1 = True
         else:
             generate_sha1 = True
-        
+
         #Generate SHA1 if needed
         if generate_sha1 == True:
             i = open(pkg_dir+"for-postinst/"+archive+".sha1", "w+")
-            i.write(sha1+" "+archive)
+            i.write(sha1+"  "+archive)
             i.close()
             print ":... \033[0;34mGENERATED\033[0m "+archive+".sha1"
 
-        # Update <package>.postinst
+        # Generate/Update <package>.postinst
         if os.path.isfile(postinst):
             f = open(postinst)
             match = re.search("r[0-9]+",f.readlines()[6]).group()[1:]
@@ -79,9 +84,44 @@ def get(soup,pif):
                 f.seek(0)
                 i = f.read()
                 o = open(postinst,"w")
-                o.write(re.sub(match, revision, i))
+                o.write(i.replace(match, revision))
                 print(":... UPDATED from revision "+match.group()+" to "+revision)
                 o.close()
         else:
             print("\033[0;31mNOT EXIST\033[0m "+binary+".postinst")
             maintscript.platforms_postinst.generate(postinst,api_level,archive)
+
+        #Generate <package>.postrm
+        if os.path.isfile(postrm):
+           print("\033[0;32mOK\033[0m "+binary+".postrm")
+        else:
+           print("\033[0;31mNOT EXIST\033[0m "+binary+".postrm")
+           maintscript.platforms_postrm.generate(postrm,api_level)
+
+        #Generate <package>.config
+        if os.path.isfile(config):
+           print("\033[0;32mOK\033[0m "+binary+".config")
+        else:
+           print("\033[0;31mNOT EXIST\033[0m "+binary+".config")
+           maintscript.platforms_config.generate(config,api_level)
+
+        #Generate <package>.templates
+        if os.path.isfile(templates):
+           print("\033[0;32mOK\033[0m "+binary+".templates")
+        else:
+           print("\033[0;31mNOT EXIST\033[0m "+binary+".templates")
+           maintscript.platforms_templates.generate(templates,api_level)
+
+        #Generate <package>.dirs
+        if os.path.isfile(dirs):
+           print("\033[0;32mOK\033[0m "+binary+".dirs")
+        else:
+           print("\033[0;31mNOT EXIST\033[0m "+binary+".dirs")
+           maintscript.platforms_dirs.generate(dirs,api_level)
+
+        #Add package to d/control
+        if "platform-"+api_level+"-" in open(control).read():
+           print("\033[0;32mOK\033[0m "+binary+" in d/control")
+        else:
+           print("\033[0;31mNOT EXIST\033[0m "+binary+" in d/control")
+           maintscript.platforms_control.generate(control,api_level,archive)
